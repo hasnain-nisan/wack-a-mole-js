@@ -34,10 +34,10 @@ class Mole {
         }
     }
     draw(){
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
+        // ctx.beginPath();
+        // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
+        // ctx.stroke();
+        // ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
         ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width/2), this.y - (this.height/2), this.width, this.height)
     }
 }
@@ -94,13 +94,63 @@ class Bullet {
     }
 }
 
-// document.addEventListener('mousemove', (e) => {
+let hammers = [];
+class Hammer {
+    constructor(x, y){
+        this.spriteWidth = 150;
+        this.spriteHeight = 135;
+        this.width = this.spriteWidth/1.3;
+        this.height = this.spriteHeight/1.3;
+        this.x = x;
+        this.y = y;
+        this.image = new Image();
+        this.image.src = './spritesheet1.png';
+        this.frame = 0;
+        this.maxFrame = 23;
+        this.markedForDeletion = false;
+        this.play = false;
+    }
+    update(){
+        if(this.frame > this.maxFrame){
+            this.frame = 0;
+        } else {
+            if(Math.random() > 0.5){
+                this.frame++;
+            }
+        }
+        // if(this.play){
+            // this.frame++;
+        // }
+    }
+    draw(){
+        // ctx.beginPath();
+        // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
+        // ctx.stroke();
+        // ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
+        ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width), this.y - (this.height), this.width, this.height)
+    }
+
+}
+
+// document.addEventListener('mouseover', (e) => {
 //     let x = e.offsetX;
 //     let y = e.offsetY;
 
 //     for (let i = 0; i < 3; i++) {
-//         let circle = new Circle(x, y);
-//         circles.push(circle);
+//         let hammer = new Hammer(x, y);
+//         hammers.push(hammer);
+//     }
+// })
+
+// document.addEventListener('mousemove', (e) => {
+//     let x = e.offsetX;
+//     let y = e.offsetY;
+
+//     if(hammers.length === 0){
+//         hammers = [new Hammer(x, y)];
+//     } else {
+//         hammers[0].x = x;
+//         hammers[0].y = y;
 //     }
 // })
 
@@ -108,11 +158,21 @@ document.addEventListener('click', (e) => {
     let x = e.offsetX;
     let y = e.offsetY;
 
-    for (let i = 0; i < 3; i++) {
-        let bullet = new Bullet(x, y);
-        bullets.push(bullet);
-    }
+    // hammers[0].play = true;
+    // hammers[0].update();
+    // hammers[0].draw();
+
+    // let hammer = new Hammer(x, y);
+    // hammers.push(hammer);
+
+    // for (let i = 0; i < 3; i++) {
+    //     let bullet = new Bullet(x, y);
+    //     bullets.push(bullet);
+    // }
+
 })
+
+hammers = [new Hammer(300, 500)];
 
 function animate(timestamp){
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -125,7 +185,7 @@ function animate(timestamp){
         moles.forEach(m => {
             let collision = checkCollisionBetweenCircles(m.circle, mole.circle)
             isCollide.push(collision)
-            console.log(isCollide);
+            // console.log(isCollide);
         })
         if(!isCollide.includes(true)){
             moles.push(mole);
@@ -134,8 +194,8 @@ function animate(timestamp){
         }
     }
 
-    [...moles, ...circles, ...bullets].forEach(object => object.update(deltaTime));
-    [...moles, ...circles, ...bullets].forEach(object => object.draw());
+    [...hammers, ...moles, ...circles, ...bullets].forEach(object => object.update(deltaTime));
+    [...hammers, ...moles, ...circles, ...bullets].forEach(object => object.draw());
 
 
     moles = moles.filter(mole => !mole.markedForDeletion);
