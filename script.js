@@ -37,7 +37,7 @@ class Mole {
         // ctx.beginPath();
         // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
         // ctx.stroke();
-        // ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
+        ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
         ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width/2), this.y - (this.height/2), this.width, this.height)
     }
 }
@@ -105,29 +105,56 @@ class Hammer {
         this.y = y;
         this.image = new Image();
         this.image.src = './spritesheet1.png';
-        this.frame = 0;
+        this.frame = 7;
         this.maxFrame = 23;
         this.markedForDeletion = false;
         this.play = false;
+        this.repeat = 4;
     }
     update(){
         if(this.frame > this.maxFrame){
+            this.repeat--;
             this.frame = 0;
         } else {
-            if(Math.random() > 0.5){
+            if(this.play){
                 this.frame++;
             }
         }
-        // if(this.play){
-            // this.frame++;
-        // }
+        if(this.repeat == 0){
+            this.play = false;
+            this.repeat = 4;
+        }
     }
     draw(){
         // ctx.beginPath();
         // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
         // ctx.stroke();
-        // ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
-        ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width), this.y - (this.height), this.width, this.height)
+        let frameInterval = (this.maxFrame / 2) + 1;
+        let rectX = this.x - (this.width/2.3);
+        let rectY = this.y - (this.height/4.5);
+        let rectW = this.width *.3;
+        let rectH = this.height*.2
+
+        if(this.play){
+            if(this.frame < frameInterval){
+                ctx.fillRect(
+                    this.x - (this.width/2.3), 
+                    (this.y - (this.height/4.5)), 
+                    this.width *.3, 
+                    this.height*.2
+                );
+            } else {
+                ctx.fillRect(
+                    this.x - (this.width/2.3) - 33, 
+                    (this.y - (this.height/4.5)) + 43, 
+                    // this.width *.3, 
+                    // this.height*.2
+                    this.width *.2, 
+                    this.height*.3
+                );
+            }
+        }
+        ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - this.width, this.y - this.height/3 , this.width, this.height)
     }
 
 }
@@ -142,23 +169,24 @@ class Hammer {
 //     }
 // })
 
-// document.addEventListener('mousemove', (e) => {
-//     let x = e.offsetX;
-//     let y = e.offsetY;
+document.addEventListener('mousemove', (e) => {
+    let x = e.offsetX;
+    let y = e.offsetY;
 
-//     if(hammers.length === 0){
-//         hammers = [new Hammer(x, y)];
-//     } else {
-//         hammers[0].x = x;
-//         hammers[0].y = y;
-//     }
-// })
+    if(hammers.length === 0){
+        hammers = [new Hammer(x, y)];
+    } else {
+        hammers[0].x = x;
+        hammers[0].y = y;
+    }
+})
 
 document.addEventListener('click', (e) => {
     let x = e.offsetX;
     let y = e.offsetY;
 
-    // hammers[0].play = true;
+    hammers[0].play = true;
+    hammers[0].repeat++;
     // hammers[0].update();
     // hammers[0].draw();
 
@@ -172,7 +200,7 @@ document.addEventListener('click', (e) => {
 
 })
 
-hammers = [new Hammer(300, 500)];
+// hammers = [new Hammer(300, 500)];
 
 function animate(timestamp){
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -194,8 +222,8 @@ function animate(timestamp){
         }
     }
 
-    [...hammers, ...moles, ...circles, ...bullets].forEach(object => object.update(deltaTime));
-    [...hammers, ...moles, ...circles, ...bullets].forEach(object => object.draw());
+    [...moles, ...hammers].forEach(object => object.update(deltaTime));
+    [...moles, ...hammers].forEach(object => object.draw());
 
 
     moles = moles.filter(mole => !mole.markedForDeletion);
