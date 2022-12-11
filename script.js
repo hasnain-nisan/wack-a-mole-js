@@ -2,43 +2,77 @@ let canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext("2d");
 const CANVAS_WIDTH = (canvas.width = window.innerWidth);
 const CANVAS_HEIGHT = (canvas.height = window.innerHeight);
+let isGameStart = false;
 
 let timeToNextMole = 0;
 let moleInterval = 500;
 let lastTime = 0;
 
+let molee = null;
 let moles = [];
 class Mole {
     constructor(){
         this.spriteWidth = 250;
         this.spriteHeight = 188;
-        this.sizeModifier = Math.random() * 0.6 + 0.6;
+        this.sizeModifier = Math.random() * 0.6 + 1;
         this.width = this.spriteWidth * this.sizeModifier;
         this.height = this.spriteHeight * this.sizeModifier;
         this.x = Math.random() * (canvas.width - this.width);
-        this.y = getRandom(400, window.innerHeight) - this.height / 2;
+        this.y = getRandom(window.innerHeight * .6, window.innerHeight) - this.height / 2;
         this.markedForDeletion = false;
         this.image = new Image();
         this.image.src = './spritesheet.png';
         this.frame = 0;
         this.maxFrame = 78;
         this.circle = {x:this.x, y:this.y, radius:this.width*.2}
-}
+        this.mole = {x:this.x - (this.width/9.5), y:this.y - (this.height/5), width:this.width *.2, height:this.height*.3}
+        this.getHit = false;
+    }
     update(){
         if(this.frame > this.maxFrame){
             this.frame = 0;
             this.markedForDeletion = true;
         }
         if(Math.random() > 0.6){
+            if(!this.getHit)
             this.frame++;
+        }
+        if(this.gameHit){
+            setTimeout(() => {
+                
+            }, 1000);
         }
     }
     draw(){
         // ctx.beginPath();
         // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
         // ctx.stroke();
-        ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
-        ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width/2), this.y - (this.height/2), this.width, this.height)
+        // ctx.strokeRect(this.x - (this.width/9.5), this.y - (this.height/5), this.width *.2, this.height*.3)
+        if(this.getHit){
+            if(Math.random() > 0.5){
+                ctx.save();
+                ctx.globalAlpha = Math.random();
+                ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width/2), this.y - (this.height/2), this.width, this.height)
+                ctx.restore();
+            } else {
+                ctx.save();
+                ctx.globalAlpha = 1;
+                ctx.drawImage(
+                  this.image,
+                  this.spriteWidth * this.frame,
+                  0,
+                  this.spriteWidth,
+                  this.spriteHeight,
+                  this.x - this.width / 2,
+                  this.y - this.height / 2,
+                  this.width,
+                  this.height
+                );
+                ctx.restore();
+            }
+        } else {
+            ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - (this.width/2), this.y - (this.height/2), this.width, this.height)
+        }
     }
 }
 
@@ -73,25 +107,49 @@ class Circle {
     }
 }
 
-let bullets = [];
-class Bullet {
-    constructor(x, y){
-        this.x = x;
-        this.y = y;
-        this.radius = 5;
-        this.markedForDeletion = false;
+let stars = [];
+class Star {
+  constructor(x, y, width, height) {
+    this.image = new Image();
+    this.image.src = "./star.png";
+    this.spriteWidth = 150;
+    this.spriteHeight = 150;
+    this.width = width;
+    this.height = height;
+    this.x = x;
+    this.y = y;
+    this.frame = 0;
+    this.maxFrame = 9;
+    // this.sound = new Audio();
+    // this.sound.src = "./boom.wav";
+    this.timeSinceLastFrame = 0;
+    this.frameInterval = 150;
+    this.markedForDeletion = false;
+  }
+  update(deltaTime) {
+    if (this.frame > this.maxFrame) {
+      this.frame = 0;
+      this.markedForDeletion = true;
+    } else {
+        if(Math.random() > 0.5){
+            this.frame++;
+            this.timeSinceLastFrame = 0;
+        }
     }
-    update(){
-        this.y -= 2;
-        if(this.y < 0) this.markedForDeletion = true;
-    }
-    draw(){
-        // ctx.beginPath();
-        // ctx.fillStyle = "black";
-        // ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
-        // ctx.fill();
-        ctx.fillRect(this.x, this.y, 5, 5)
-    }
+  }
+  draw() {
+    ctx.drawImage(
+      this.image,
+      this.frame * this.spriteWidth,
+      0,
+      this.spriteWidth,
+      this.spriteHeight,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
+  }
 }
 
 let hammers = [];
@@ -99,17 +157,25 @@ class Hammer {
     constructor(x, y){
         this.spriteWidth = 150;
         this.spriteHeight = 135;
-        this.width = this.spriteWidth/1.3;
-        this.height = this.spriteHeight/1.3;
+        this.width = this.spriteWidth;
+        this.height = this.spriteHeight;
         this.x = x;
         this.y = y;
+        this.newX = null;
+        this.newY = null;
         this.image = new Image();
         this.image.src = './spritesheet1.png';
-        this.frame = 7;
+        this.frame = 0;
         this.maxFrame = 23;
         this.markedForDeletion = false;
         this.play = false;
-        this.repeat = 4;
+        this.repeat = 2;
+        this.hammerRect = {
+          x: this.x - this.width / 2.3 - 45,
+          y: this.y - this.height / 4.5 + 55,
+          width: this.width * 0.2,
+          height: this.height * 0.3,
+        };
     }
     update(){
         if(this.frame > this.maxFrame){
@@ -123,62 +189,64 @@ class Hammer {
         if(this.repeat == 0){
             this.play = false;
             this.repeat = 4;
+            if (molee) molee.getHit = false;
+            if (molee) molee.markedForDeletion = true;
         }
     }
     draw(){
-        // ctx.beginPath();
-        // ctx.arc(this.x, this.y, this.width*.2, 0, 2 * Math.PI);
-        // ctx.stroke();
-        let frameInterval = (this.maxFrame / 2) + 1;
-        let rectX = this.x - (this.width/2.3);
-        let rectY = this.y - (this.height/4.5);
-        let rectW = this.width *.3;
-        let rectH = this.height*.2
-
         if(this.play){
-            if(this.frame < frameInterval){
-                ctx.fillRect(
-                    this.x - (this.width/2.3), 
-                    (this.y - (this.height/4.5)), 
-                    this.width *.3, 
-                    this.height*.2
-                );
-            } else {
-                ctx.fillRect(
-                    this.x - (this.width/2.3) - 33, 
-                    (this.y - (this.height/4.5)) + 43, 
-                    // this.width *.3, 
-                    // this.height*.2
-                    this.width *.2, 
-                    this.height*.3
-                );
-            }
+            // ctx.fillRect(
+            //   this.x - this.width / 2.3 - 45,
+            //   this.y - this.height / 4.5 + 55,
+            //   this.width * 0.2,
+            //   this.height * 0.3
+            // );
+            let rect = {
+              x: this.x - this.width / 2.3 - 45,
+              y: this.y - this.height / 4.5 + 55,
+              width: this.width * 0.2,
+              height: this.height * 0.3,
+            };
+            moles.forEach((mole) => {
+                if(mole.frame > 10 && mole.frame < 72){
+                    let moleRect = mole.mole;
+                    let isCollide = checkCollisionBetweenRects(moleRect, rect);
+                    if (isCollide) {
+                      molee = mole;
+                      mole.getHit = true;
+                      if (stars.length === 0) {
+                        stars.push(
+                          new Star(
+                            moleRect.x - 10,
+                            moleRect.y - 10,
+                            moleRect.width * 1.5,
+                            moleRect.height * 1.2
+                          )
+                        );
+                      }
+                    }
+                }
+            });
         }
         ctx.drawImage(this.image, this.spriteWidth * this.frame, 0, this.spriteWidth, this.spriteHeight, this.x - this.width, this.y - this.height/3 , this.width, this.height)
     }
 
 }
 
-// document.addEventListener('mouseover', (e) => {
-//     let x = e.offsetX;
-//     let y = e.offsetY;
-
-//     for (let i = 0; i < 3; i++) {
-//         let hammer = new Hammer(x, y);
-//         hammers.push(hammer);
-//     }
-// })
-
 document.addEventListener('mousemove', (e) => {
     let x = e.offsetX;
     let y = e.offsetY;
 
-    if(hammers.length === 0){
-        hammers = [new Hammer(x, y)];
-    } else {
-        hammers[0].x = x;
-        hammers[0].y = y;
-    }
+    // if(isGameStart){
+        if(hammers.length === 0){
+            hammers = [new Hammer(x, y)];
+        } else {
+            if(hammers.length > 0 && !hammers[0].play){
+                hammers[0].x = x;
+                hammers[0].y = y;
+            }
+        }
+    // }
 })
 
 document.addEventListener('click', (e) => {
@@ -187,20 +255,10 @@ document.addEventListener('click', (e) => {
 
     hammers[0].play = true;
     hammers[0].repeat++;
-    // hammers[0].update();
-    // hammers[0].draw();
-
-    // let hammer = new Hammer(x, y);
-    // hammers.push(hammer);
-
-    // for (let i = 0; i < 3; i++) {
-    //     let bullet = new Bullet(x, y);
-    //     bullets.push(bullet);
-    // }
 
 })
 
-// hammers = [new Hammer(300, 500)];
+// stars = [new Star(200, 300, 200, 300)];
 
 function animate(timestamp){
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -222,13 +280,12 @@ function animate(timestamp){
         }
     }
 
-    [...moles, ...hammers].forEach(object => object.update(deltaTime));
-    [...moles, ...hammers].forEach(object => object.draw());
-
+    [...moles, ...hammers, ...stars].forEach(object => object.update(deltaTime));
+    [...moles, ...hammers, ...stars].forEach(object => object.draw());
 
     moles = moles.filter(mole => !mole.markedForDeletion);
     circles = circles.filter(circle => !circle.markedForDeletion);
-    bullets = bullets.filter(bullet => !bullet.markedForDeletion);
+    stars = stars.filter(star => !star.markedForDeletion);
 
     requestAnimationFrame(animate)
 }
@@ -237,14 +294,10 @@ animate(0)
 
 function getRandom(min, max) {
     const floatRandom = Math.random()
-  
     const difference = max - min
-  
     // random between 0 and the difference
     const random = Math.round(difference * floatRandom)
-  
     const randomWithinRange = random + min
-  
     return randomWithinRange
   }
 
@@ -277,4 +330,18 @@ const checkCollisionBetweenCircles = (circle1, circle2) => {
     } else if (distance > sumOfRadius){
         return false;
     }
+}
+
+const gameStart = (e) => {
+    let x = e.offsetX;
+    let y = e.offsetY;
+
+    if (hammers.length === 0) {
+      hammers = [new Hammer(x, y)];
+    }
+
+    let isGameStart = true;
+    let startBtn = document.querySelector('.start');
+    startBtn.style.display = 'none';
+    canvas.style.opacity = 1;
 }
